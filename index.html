@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Buy 10×10 pixel blocks for $1 each on Robinhood Chain and get a pixel-art deed NFT as proof of ownership.">
+<style>html{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>The Million Pixel Homepage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: ledger header + stat strip, then the 1000×1000 grid beside a working side panel (stacks on phones). */
+:root{
+  --bg:#eef1f6; --surface:#ffffff; --ink:#141a2e; --muted:#5b6480; --line:#d5dbe7;
+  --grid:#f7f9fc; --gridline:#e6eaf2; --gridmajor:#cfd6e4;
+  --accent:#f2b705; --accent-ink:#1a1400; --sold:#3b4b7a; --bad:#d64545; --good:#1f9d6b;
+  --f-display:"Silkscreen", ui-monospace, monospace;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0d1224; --surface:#151b33; --ink:#e7ebf7; --muted:#9aa4c4; --line:#262f52;
+  --grid:#10162b; --gridline:#18203c; --gridmajor:#26305a;
+  --accent:#ffc928; --accent-ink:#1a1400; --sold:#8fa3e0; --bad:#ff6b6b; --good:#3fd39a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0d1224; --surface:#151b33; --ink:#e7ebf7; --muted:#9aa4c4; --line:#262f52;
+  --grid:#10162b; --gridline:#18203c; --gridmajor:#26305a;
+  --accent:#ffc928; --accent-ink:#1a1400; --sold:#8fa3e0; --bad:#ff6b6b; --good:#3fd39a; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;padding-inline:16px;padding-block:20px 48px}
+.wrap{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.brand h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,3.4vw,34px);line-height:1;margin:0;letter-spacing:.02em;text-wrap:balance}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:14px}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+a.btn{text-decoration:none}
+.brand p.insp{margin-top:2px;font-size:12px}
+.brand p b{color:var(--ink);font-weight:600}
+.btn{font:600 14px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;border-radius:8px;cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--muted)}
+.btn:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.primary:disabled{opacity:.45;cursor:not-allowed}
+.btn .dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.btn.on .dot{background:var(--good)}
+.mono{font-family:var(--f-mono)}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.stat{background:var(--surface);padding:12px 14px;min-width:0}
+.stat .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-size:20px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress{grid-column:1/-1;background:var(--surface);padding:0 14px 12px}
+.bar{height:8px;background:var(--gridline);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .4s}
+@media (max-width:640px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:18px;align-items:start}
+@media (max-width:960px){.main{grid-template-columns:minmax(0,1fr)}}
+.board{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;min-width:0}
+.board-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:0 2px 8px}
+.canvas-box{position:relative;width:100%;max-width:1000px;margin:0 auto}
+canvas{display:block;width:100%;height:auto;aspect-ratio:1/1;max-width:100%;image-rendering:pixelated;cursor:crosshair;touch-action:none;border:1px solid var(--gridmajor)}
+.tip{position:absolute;pointer-events:none;background:var(--ink);color:var(--bg);font-size:12px;padding:6px 8px;border-radius:6px;max-width:240px;transform:translate(12px,12px);z-index:3}
+.tip b{display:block;font-weight:600}
+.tip span{font-family:var(--f-mono);opacity:.8;word-break:break-all}
+
+aside{display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font-family:var(--f-display);font-size:15px;font-weight:400;margin:0;letter-spacing:.04em}
+.hint{color:var(--muted);font-size:14px;margin:0}
+.row{display:flex;justify-content:space-between;gap:10px;font-size:14px}
+.row span:first-child{color:var(--muted)}
+.row span:last-child{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right;min-width:0;overflow-wrap:anywhere}
+.total{border-top:1px dashed var(--line);padding-top:10px;font-weight:600}
+.total span:last-child{font-size:18px}
+label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);display:flex;flex-direction:column;gap:5px}
+input[type=text],input[type=url]{font:15px var(--f-body);color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 10px;text-transform:none;letter-spacing:0;width:100%}
+.imgrow{display:flex;gap:10px;align-items:center}
+.preview{width:64px;height:64px;flex:none;border:1px solid var(--line);border-radius:6px;background:var(--grid) center/contain no-repeat;image-rendering:pixelated}
+input[type=color]{width:44px;height:36px;border:1px solid var(--line);border-radius:7px;background:var(--bg);padding:2px}
+.file{font-size:13px;color:var(--muted);text-transform:none;letter-spacing:0}
+.msg{font-size:13px;margin:0;padding:8px 10px;border-radius:7px;background:var(--bg)}
+.msg.bad{color:var(--bad)}.msg.good{color:var(--good)}
+.feed{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.feed li{display:grid;grid-template-columns:36px minmax(0,1fr);gap:10px;align-items:center;font-size:13px}
+.feed .sw{width:36px;height:36px;border-radius:5px;border:1px solid var(--line);background:var(--grid) center/cover no-repeat;image-rendering:pixelated}
+.feed b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed small{color:var(--muted);font-family:var(--f-mono)}
+a{color:inherit}
+.detail a{word-break:break-all}
+.badge{display:inline-block;font:500 11px var(--f-mono);padding:2px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.opt{margin:0;font-size:13px;color:var(--muted);border-top:1px dashed var(--line);padding-top:10px}
+.editbox{display:flex;flex-direction:column;gap:10px;border-top:1px dashed var(--line);padding-top:12px;margin-top:6px}
+.deedwrap{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.deedwrap .k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.deed img{display:block;width:100%;max-width:300px;aspect-ratio:1/1;height:auto;margin:0 auto;image-rendering:pixelated;border:1px solid var(--line);border-radius:6px}
+footer{color:var(--muted);font-size:13px;max-width:70ch}
+@media (prefers-reduced-motion:reduce){.bar i{transition:none}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>The Million Pixel Homepage</h1>
+      <p><b>1,000,000 pixels</b> · <b>$1 per 10×10 block</b> · owned forever on Robinhood Chain</p>
+      <p class="insp">Inspired by the original Million Dollar Homepage (2005).</p>
+    </div>
+    <div class="actions">
+      <a class="btn" href="https://x.com/MillPixels" target="_blank" rel="noopener noreferrer" aria-label="Follow @MillPixels on X"><svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.9 2H22l-6.8 7.8L23.2 22h-6.3l-4.9-6.4L6.4 22H3.3l7.3-8.3L1 2h6.4l4.4 5.8L18.9 2Zm-1.1 18h1.7L6.3 3.9H4.5L17.8 20Z"/></svg>@MillPixels</a>
+      <button class="btn" id="walletBtn" type="button"><span class="dot"></span><span id="walletLabel">Connect wallet</span></button>
+    </div>
+  </header>
+
+  <section class="stats" aria-label="Sale progress">
+    <div class="stat"><div class="k">Pixels sold</div><div class="v" id="sSold">0</div></div>
+    <div class="stat"><div class="k">Pixels left</div><div class="v" id="sLeft">1,000,000</div></div>
+    <div class="stat"><div class="k">Raised (USD)</div><div class="v" id="sRaised">0</div></div>
+    <div class="stat"><div class="k">Owners</div><div class="v" id="sOwners">0</div></div>
+    <div class="progress"><div class="bar"><i id="sBar"></i></div></div>
+  </section>
+
+  <div class="main">
+    <section class="board">
+      <div class="board-head"><span>Drag across empty space to select blocks. Click a sold plot to see who owns it.</span><span class="mono" id="cursor">x —, y —</span></div>
+      <div class="canvas-box" id="box">
+        <canvas id="cv" width="1000" height="1000" aria-label="Pixel grid, 1000 by 1000"></canvas>
+        <div class="tip" id="tip" hidden></div>
+      </div>
+    </section>
+
+    <aside>
+      <div class="panel" id="buyPanel">
+        <h2>Buy pixels</h2>
+        <p class="hint" id="selHint">No blocks selected yet. Drag on the grid to mark out your plot.</p>
+        <div id="selInfo" hidden>
+          <div class="row"><span>Position</span><span id="pPos"></span></div>
+          <div class="row"><span>Size</span><span id="pSize"></span></div>
+          <div class="row"><span>Blocks</span><span id="pBlocks"></span></div>
+          <div class="row total"><span>Total</span><span id="pPrice"></span></div>
+          <div class="deedwrap"><span class="k">You receive this Pixel Deed NFT</span><div class="deed" id="pDeed"></div></div>
+        </div>
+        <form id="buyForm" hidden>
+          <div style="display:flex;flex-direction:column;gap:12px">
+            <label>Plot colour
+              <span class="imgrow">
+                <span class="preview" id="fPrev"></span>
+                <input id="fColor" type="color" value="#4a6cf7" aria-label="Plot colour">
+                <span class="file">Shown on the grid until you add an image.</span>
+              </span>
+            </label>
+            <p class="opt">Ad details are optional. Add them now or any time later from your deed.</p>
+            <label for="fImg">Image<input id="fImg" class="file" type="file" accept="image/*"></label>
+            <label for="fTitle">Hover text<input id="fTitle" type="text" maxlength="80" placeholder="Your project name"></label>
+            <label for="fUrl">Link<input id="fUrl" type="url" maxlength="200" placeholder="https://yourproject.xyz"></label>
+            <button class="btn primary" id="buyBtn" type="submit">Sign &amp; buy</button>
+          </div>
+        </form>
+        <p class="msg" id="msg" hidden></p>
+      </div>
+
+      <div class="panel detail" id="detail" hidden>
+        <h2>Pixel Deed</h2>
+        <div id="dBody"></div>
+        <button class="btn" type="button" id="dClose">Close</button>
+      </div>
+
+      <div class="panel">
+        <h2>Latest buys</h2>
+        <ul class="feed" id="feed"></ul>
+        <p class="hint" id="feedEmpty">The grid is wide open. The first plot bought shows up here for everyone.</p>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <span class="badge">Demo</span> Purchases are recorded and signed by your wallet on Robinhood Chain, but no funds move yet. The production version takes payment through the sale contract, which also mints your Pixel Deed and stops two plots overlapping.
+  </footer>
+</div>
+
+<script>
+(() => {
+  const N = 100, B = 10, PX_PER_BLOCK = 100, PRICE_PER_BLOCK = 1;
+  const usd = n => '$' + n.toLocaleString('en-US');
+  const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
+  const $ = id => document.getElementById(id);
+  const fmt = n => n.toLocaleString('en-US');
+
+  let plots = [];                 // live from db
+  let occ = new Int32Array(N*N).fill(-1);
+  const imgs = new Map();
+  let sel = null, drag = null;    // block coords {x,y,w,h}
+  let db = null, canWrite = null;
+  let wallet = null;              // {address, provider, demo}
+  let fillImage = null;           // dataURL
+  let colors = {};
+
+  // ---------- theme ----------
+  function readColors(){
+    const s = getComputedStyle(document.documentElement);
+    ['grid','gridline','gridmajor','accent','bad','sold','ink'].forEach(k => colors[k] = s.getPropertyValue('--'+k).trim());
+  }
+  readColors();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { readColors(); draw(); });
+  new MutationObserver(() => { readColors(); draw(); }).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+  // ---------- drawing ----------
+  function draw(){
+    ctx.fillStyle = colors.grid; ctx.fillRect(0,0,1000,1000);
+    ctx.fillStyle = colors.gridline;
+    for (let i=1;i<N;i++){ if(i%10) { ctx.fillRect(i*B,0,1,1000); ctx.fillRect(0,i*B,1000,1); } }
+    ctx.fillStyle = colors.gridmajor;
+    for (let i=10;i<N;i+=10){ ctx.fillRect(i*B,0,1,1000); ctx.fillRect(0,i*B,1000,1); }
+    for (const p of plots){
+      const im = imgs.get(p.id);
+      if (im && im.complete && im.naturalWidth) ctx.drawImage(im, p.x*B, p.y*B, p.w*B, p.h*B);
+      else { ctx.fillStyle = p.color || colors.sold; ctx.fillRect(p.x*B, p.y*B, p.w*B, p.h*B); }
+    }
+    const s = drag || sel;
+    if (s){
+      const bad = overlaps(s);
+      ctx.fillStyle = (bad ? colors.bad : colors.accent);
+      ctx.globalAlpha = .28; ctx.fillRect(s.x*B, s.y*B, s.w*B, s.h*B); ctx.globalAlpha = 1;
+      ctx.strokeStyle = bad ? colors.bad : colors.accent; ctx.lineWidth = 3;
+      ctx.strokeRect(s.x*B+1.5, s.y*B+1.5, s.w*B-3, s.h*B-3);
+    }
+  }
+  function rebuild(){
+    occ.fill(-1);
+    plots.forEach((p,i) => { for(let y=p.y;y<p.y+p.h;y++) for(let x=p.x;x<p.x+p.w;x++) occ[y*N+x]=i; });
+    for (const p of plots){
+      if (p.img && (!imgs.has(p.id) || imgs.get(p.id).src !== p.img)){ const im = new Image(); im.onload = draw; im.src = p.img; imgs.set(p.id, im); }
+      if (!p.img) imgs.delete(p.id);
+    }
+  }
+  function overlaps(s){
+    for(let y=s.y;y<s.y+s.h;y++) for(let x=s.x;x<s.x+s.w;x++) if(occ[y*N+x]>=0) return true;
+    return false;
+  }
+
+  // ---------- stats & feed ----------
+  function renderStats(){
+    const sold = plots.reduce((a,p)=>a+p.w*p.h*PX_PER_BLOCK,0);
+    $('sSold').textContent = fmt(sold);
+    $('sLeft').textContent = fmt(1e6 - sold);
+    $('sRaised').textContent = usd(sold/PX_PER_BLOCK*PRICE_PER_BLOCK);
+    $('sOwners').textContent = fmt(new Set(plots.map(p=>p.owner)).size);
+    $('sBar').style.width = (sold/1e6*100).toFixed(3)+'%';
+    const feed = $('feed'); feed.textContent = '';
+    const recent = [...plots].sort((a,b)=>(b.ts||0)-(a.ts||0)).slice(0,8);
+    $('feedEmpty').hidden = recent.length > 0;
+    for (const p of recent){
+      const li = document.createElement('li');
+      const sw = document.createElement('span'); sw.className='sw';
+      if (p.img) sw.style.backgroundImage = `url("${p.img}")`; else sw.style.background = p.color;
+      const t = document.createElement('div');
+      const b = document.createElement('b'); b.textContent = plotName(p);
+      const sm = document.createElement('small'); sm.textContent = `${fmt(p.w*p.h*PX_PER_BLOCK)} px · ${short(p.owner)}`;
+      t.append(b, sm); li.append(sw, t);
+      li.style.cursor='pointer'; li.addEventListener('click', ()=>showDetail(p));
+      feed.append(li);
+    }
+  }
+  const plotName = p => p.title || `Plot #${String(deedNumber(p)).padStart(4,'0')}`;
+  const short = a => a ? a.slice(0,6)+'…'+a.slice(-4) : '—';
+
+  // ---------- pointer ----------
+  function blockAt(e){
+    const r = cv.getBoundingClientRect();
+    const x = Math.min(N-1, Math.max(0, Math.floor((e.clientX-r.left)/r.width*N)));
+    const y = Math.min(N-1, Math.max(0, Math.floor((e.clientY-r.top)/r.height*N)));
+    return {x,y};
+  }
+  let start = null;
+  cv.addEventListener('pointerdown', e => {
+    const b = blockAt(e), hit = occ[b.y*N+b.x];
+    if (hit >= 0){ showDetail(plots[hit]); return; }
+    cv.setPointerCapture(e.pointerId);
+    start = b; drag = {x:b.x,y:b.y,w:1,h:1}; sel = null; draw();
+  });
+  cv.addEventListener('pointermove', e => {
+    const b = blockAt(e);
+    $('cursor').textContent = `x ${b.x*B}, y ${b.y*B}`;
+    if (start){
+      drag = {x:Math.min(start.x,b.x), y:Math.min(start.y,b.y), w:Math.abs(b.x-start.x)+1, h:Math.abs(b.y-start.y)+1};
+      draw(); hideTip();
+    } else {
+      const hit = occ[b.y*N+b.x];
+      if (hit>=0) showTip(e, plots[hit]); else hideTip();
+    }
+  });
+  const PLOT_COLOURS = ['#4a6cf7','#e8505b','#f5a623','#2bb673','#9b59f0','#14b8c4','#ff7ab6','#ffd23f','#3d5a80','#ef6f3c'];
+  const end = () => { if(!start) return; sel = drag; drag = null; start = null; if (!fillImage) $('fColor').value = PLOT_COLOURS[Math.floor(Math.random()*PLOT_COLOURS.length)]; draw(); renderSel(); };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointerleave', () => { if(!start) hideTip(); });
+
+  function showTip(e, p){
+    const box = $('box').getBoundingClientRect(), tip = $('tip');
+    tip.textContent = '';
+    const b = document.createElement('b'); b.textContent = plotName(p);
+    const s = document.createElement('span'); s.textContent = p.url || `Owned by ${short(p.owner)} · ad coming soon`;
+    tip.append(b, s); tip.hidden = false;
+    let left = e.clientX - box.left, top = e.clientY - box.top;
+    if (left > box.width - 260) left -= 260;
+    tip.style.left = left+'px'; tip.style.top = top+'px';
+  }
+  function hideTip(){ $('tip').hidden = true; }
+
+  // ---------- selection panel ----------
+  function renderSel(){
+    const has = !!sel;
+    $('selHint').hidden = has; $('selInfo').hidden = !has; $('buyForm').hidden = !has;
+    if (!has) return;
+    const px = sel.w*sel.h*PX_PER_BLOCK;
+    $('pPos').textContent = `${sel.x*B}, ${sel.y*B}`;
+    $('pSize').textContent = `${sel.w*B} × ${sel.h*B} px`;
+    $('pBlocks').textContent = fmt(sel.w*sel.h);
+    $('pPrice').textContent = usd(sel.w*sel.h*PRICE_PER_BLOCK);
+    const bad = overlaps(sel);
+    if (bad) say('Part of this selection is already owned. Pick empty blocks only.', 'bad'); else hideMsg();
+    $('buyBtn').disabled = bad || canWrite === false;
+    $('buyBtn').textContent = wallet ? 'Sign & buy' : 'Connect wallet & buy';
+    if (canWrite === false) say('You can view this grid but not buy. Ask the owner for Contributor access.', 'bad');
+    $('pDeed').innerHTML = deedImg(sel, plots.length + 1, Date.now(), true);
+    updatePreview();
+  }
+  function say(t, kind){ const m=$('msg'); m.textContent=t; m.className='msg '+(kind||''); m.hidden=false; }
+  function hideMsg(){ $('msg').hidden = true; }
+
+  // ---------- Pixel Deed (NFT image drawn from coordinates only) ----------
+  function deedNumber(p){
+    const order = [...plots].sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const i = order.findIndex(q => q.id === p.id);
+    return i >= 0 ? i + 1 : plots.length + 1;
+  }
+  function hashStr(str){ let h=2166136261; for (let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+  function rng(seed){ return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function hslRGB(h, s, l){
+    s/=100; l/=100; const k = n => (n + h/30) % 12, a = s*Math.min(l, 1-l);
+    const f = n => 255*(l - a*Math.max(-1, Math.min(k(n)-3, 9-k(n), 1)));
+    return [f(0), f(8), f(4)];
+  }
+  // 3×5 pixel font, rows top to bottom
+  const FONT = {A:'010101111101101',B:'110101110101110',C:'011100100100011',D:'110101101101110',E:'111100110100111',F:'111100110100100',G:'011100101101011',H:'101101111101101',I:'111010010010111',J:'001001001101010',K:'101101110101101',L:'100100100100111',M:'101111101101101',N:'110101101101101',O:'010101101101010',P:'110101110100100',Q:'010101101111011',R:'110101110101101',S:'011100010001110',T:'111010010010010',U:'101101101101111',V:'101101101101010',W:'101101111111101',X:'101101010101101',Y:'101101010010010',Z:'111001010100111',
+    '0':'111101101101111','1':'010110010010111','2':'110001010100111','3':'110001010001110','4':'101101111001001','5':'111100110001110','6':'011100111101111','7':'111001010010010','8':'111101111101111','9':'111101111001110',
+    '#':'010111010111010',',':'000000000010100','-':'000000111000000','.':'000000000000010','x':'000101010101000',' ':'000000000000000'};
+  const BAYER = [0,8,2,10,12,4,14,6,3,11,1,9,15,7,13,5];
+  const deedCache = new Map();
+
+  function deedPNG(p, num, ts, preview){
+    const key = [p.x,p.y,p.w,p.h,num,preview?1:0,plots.length].join(',');
+    if (deedCache.has(key)) return deedCache.get(key);
+    const W = 100, H = 200, I = 4, R = 7;
+    const c = document.createElement('canvas'); c.width = W; c.height = H;
+    const g = c.getContext('2d'), im = g.createImageData(W, H), d = im.data;
+    const seed = hashStr(`${p.x},${p.y},${p.w},${p.h},${num}`), rnd = rng(seed), hue = Math.floor(rnd()*360);
+
+    // silhouette: notched corners + scalloped top/bottom, all on the pixel grid
+    const notch = [[0,0],[W-1,0],[0,H-1],[W-1,H-1]], scal = [30,40,50,60,70];
+    const inTicket = (x,y) => {
+      for (const [cx,cy] of notch) if ((x-cx)**2 + (y-cy)**2 < (R+I+.5)**2) return false;
+      for (const sx of scal){ if ((x-sx)**2 + y**2 < 12.5) return false; if ((x-sx)**2 + (y-H+1)**2 < 12.5) return false; }
+      return true;
+    };
+    const inInner = (x,y) => {
+      if (x < I || y < I || x > W-1-I || y > H-1-I) return false;
+      for (const [cx,cy] of [[I,I],[W-1-I,I],[I,H-1-I],[W-1-I,H-1-I]]) if ((x-cx)**2 + (y-cy)**2 < R*R) return false;
+      return true;
+    };
+
+    // holographic foil, posterized with ordered dithering
+    const base0 = hslRGB((hue+230)%360, 70, 20), base1 = hslRGB((hue+260)%360, 75, 13);
+    const blobs = [[.28,.18,.42,0],[.78,.42,.36,70],[.32,.66,.40,150],[.72,.92,.34,230]].map(([bx,by,br,bh]) => ({bx,by,br,col:hslRGB((hue+bh)%360,95,52)}));
+    const band0 = hslRGB((hue+40)%360,100,70), band1 = hslRGB((hue+110)%360,100,65);
+    const LV = 6;
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+      const i = (y*W+x)*4;
+      if (!inTicket(x,y)) { d[i+3] = 0; continue; }
+      const u = x/W, v = y/H, t = (u+v)/2;
+      let col = base0.map((b,k) => b + (base1[k]-b)*t);
+      for (const b of blobs){
+        const dist = Math.hypot(u-b.bx, (v-b.by)*0.55) / b.br, a = Math.max(0, 1-dist) * .85;
+        col = col.map((cc,k) => cc + (b.col[k]-cc)*a);
+      }
+      const bp = (u*.6 + v*.8) - .7, ba = Math.max(0, 1 - Math.abs(bp)/.12) * .5, bc = bp < 0 ? band0 : band1;
+      col = col.map((cc,k) => cc + (bc[k]-cc)*ba);
+      // black-and-white: foil brightness becomes sparse 1-bit dither on black
+      const lum = (0.299*col[0] + 0.587*col[1] + 0.114*col[2]) / 255;
+      const level = Math.max(0, Math.min(1, (lum - .22) * .32));
+      const on = level > (BAYER[(y%4)*4 + (x%4)] + .5)/16;
+      d[i] = d[i+1] = d[i+2] = on ? 255 : 0;
+      d[i+3] = 255;
+    }
+    g.putImageData(im, 0, 0);
+
+    const WHITE = '#ffffff', SHADOW = '#000000';
+    const px = (x,y,w=1,h=1,col=WHITE) => { g.fillStyle = col; g.fillRect(x,y,w,h); };
+    const textW = (str, sc) => str.length*4*sc - sc;
+    const text = (str, x, y, sc=1, center=false) => {
+      if (center) x = Math.round((W - textW(str, sc))/2);
+      // black halo around every lit pixel keeps text clean on the dithered foil
+      const halo = [[-1,-1],[0,-1],[1,-1],[-1,0],[1,0],[-1,1],[0,1],[1,1]];
+      for (const pass of [SHADOW, WHITE]){
+        [...str].forEach((ch, n) => {
+          const bits = FONT[ch] || FONT[' '];
+          for (let r=0;r<5;r++) for (let cc=0;cc<3;cc++) if (bits[r*3+cc] === '1'){
+            const X = x + (n*4+cc)*sc, Y = y + r*sc;
+            if (pass === SHADOW) for (const [dx,dy] of halo) px(X+dx, Y+dy, sc, sc, SHADOW);
+            else px(X, Y, sc, sc, WHITE);
+          }
+        });
+      }
+    };
+
+    // outline (inner border) and tear line
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+      if (inInner(x,y) && (!inInner(x+1,y) || !inInner(x-1,y) || !inInner(x,y+1) || !inInner(x,y-1))) px(x,y);
+    }
+    for (let x=I+2; x<W-I-2; x+=6) px(x, 56, 4, 1);
+
+    // stub: deed number, date, mini-map
+    text('MILLION PIXEL', 11, 12);
+    text('#' + String(num).padStart(4,'0'), 11, 22, 2);
+    text(new Date(ts||Date.now()).toISOString().slice(0,10), 11, 40);
+    const MX = 66, MY = 11, MS = 25;
+    px(MX-2, MY-2, MS+4, MS+4, '#ffffff'); px(MX-1, MY-1, MS+2, MS+2, '#000000');
+    for (const q of plots) if (q.id !== p.id){
+      const qx = MX + Math.floor(q.x/4), qy = MY + Math.floor(q.y/4), qw = Math.max(1, Math.round(q.w/4)), qh = Math.max(1, Math.round(q.h/4));
+      for (let yy=0; yy<qh; yy++) for (let xx=0; xx<qw; xx++) if ((xx+yy)%2 === 0) px(qx+xx, qy+yy);
+    }
+    px(MX + Math.floor(p.x/4), MY + Math.floor(p.y/4), Math.max(1, Math.round(p.w/4)), Math.max(1, Math.round(p.h/4)));
+    const st = preview ? 'ON MINT' : 'MINTED';
+    text(st, MX + Math.round((MS - textW(st,1))/2), 40);
+
+    // barcode + serial
+    px(12, 62, 76, 18, SHADOW);
+    let bx = 14;
+    while (bx < 86){ const w = 1 + Math.floor(rnd()*2); if (bx + w > 86) break; px(bx, 64, w, 14); bx += w + 1 + Math.floor(rnd()*2); }
+    text((seed.toString(16) + num).toUpperCase().slice(0,10), 0, 81, 1, true);
+
+    // footprint: the blocks they bought
+    const FX = 14, FY = 92, FW = 72, FH = 56;
+    const cell = Math.min(4, FW/p.w, FH/p.h);
+    px(FX-2, FY-2, FW+4, FH+4, SHADOW);
+    if (cell >= 3){
+      const cw = Math.floor(cell), fx = FX + Math.floor((FW - p.w*cw)/2), fy = FY + Math.floor((FH - p.h*cw)/2);
+      for (let y=0;y<p.h;y++) for (let x=0;x<p.w;x++){ px(fx+x*cw+1, fy+y*cw+1, cw-1, cw-1, SHADOW); px(fx+x*cw, fy+y*cw, cw-1, cw-1); }
+    } else {
+      const fw = Math.max(1, Math.round(p.w*cell)), fh = Math.max(1, Math.round(p.h*cell));
+      const fx = FX + Math.floor((FW-fw)/2), fy = FY + Math.floor((FH-fh)/2);
+      px(fx+1, fy+1, fw, fh, SHADOW); px(fx, fy, fw, fh);
+    }
+    text(`X${p.x*B} Y${p.y*B}`, 0, 151, 1, true);
+
+    // totals
+    px(14, 160, 72, 1);
+    text('PIXELS OWNED', 0, 165, 1, true);
+    const pxs = (p.w*p.h*PX_PER_BLOCK).toLocaleString('en-US') + ' PX';
+    const sc = textW(pxs, 2) <= 80 ? 2 : 1;
+    text(pxs, 0, sc === 2 ? 173 : 176, sc, true);
+    let sz = `${p.w*B}x${p.h*B} . ${p.w*p.h} BLOCK${p.w*p.h>1?'S':''}`;
+    if (textW(sz,1) > 76) sz = `${p.w*B}x${p.h*B} PX`;
+    text(sz, 0, 187, 1, true);
+
+    // place the ticket in a square white frame (1:1 for wallets and marketplaces)
+    const S = 256, fx0 = (S - W) / 2, fy0 = (S - H) / 2;
+    const sq = document.createElement('canvas'); sq.width = S; sq.height = S;
+    const sg = sq.getContext('2d'); sg.imageSmoothingEnabled = false;
+    sg.fillStyle = '#ffffff'; sg.fillRect(0, 0, S, S);
+    const sh = document.createElement('canvas'); sh.width = W; sh.height = H;
+    const shg = sh.getContext('2d'); shg.drawImage(c, 0, 0);
+    shg.globalCompositeOperation = 'source-in'; shg.fillStyle = '#d9d9d9'; shg.fillRect(0, 0, W, H);
+    sg.drawImage(sh, fx0 + 3, fy0 + 3);
+    sg.drawImage(c, fx0, fy0);
+    const url = sq.toDataURL('image/png');
+    deedCache.set(key, url);
+    return url;
+  }
+  const deedImg = (p, num, ts, preview) => `<img src="${deedPNG(p, num, ts, preview)}" alt="Pixel Deed #${String(num).padStart(4,'0')}, ${(p.w*p.h*PX_PER_BLOCK).toLocaleString('en-US')} pixels">`;
+
+  function showDetail(p){
+    const d = $('dBody'); d.textContent = '';
+    const dv = document.createElement('div'); dv.className = 'deed'; dv.style.marginBottom = '12px';
+    dv.innerHTML = deedImg(p, deedNumber(p), p.ts, false); d.append(dv);
+    const rows = [['Ad', p.title || 'Not set yet'], ['Owner', p.owner], ['Position', `${p.x*B}, ${p.y*B}`], ['Size', `${p.w*B} × ${p.h*B} px`], ['Paid', usd(p.w*p.h*PRICE_PER_BLOCK)], ['Network', 'Robinhood Chain'], ['Signature', short(p.sig)]];
+    rows.forEach(([k,v]) => { const r=document.createElement('div'); r.className='row'; const a=document.createElement('span'); a.textContent=k; const b=document.createElement('span'); b.textContent=v; r.append(a,b); d.append(r); });
+    if (p.url){
+      const a = document.createElement('a'); a.href = p.url; a.target='_blank'; a.rel='noopener noreferrer nofollow'; a.textContent = 'Visit ' + p.url;
+      a.className = 'btn'; a.style.marginTop='10px'; a.style.textDecoration='none'; d.append(a);
+    }
+    d.append(editSection(p));
+    $('detail').hidden = false;
+  }
+
+  // ---------- owner edits the ad later ----------
+  function editSection(p){
+    const box = document.createElement('div'); box.className = 'editbox';
+    if (!wallet){
+      const h = document.createElement('p'); h.className = 'hint'; h.textContent = 'Own this deed? Connect the wallet that holds it to add or change the ad.';
+      const b = document.createElement('button'); b.type='button'; b.className='btn'; b.textContent='Connect wallet';
+      b.addEventListener('click', async () => { if (await connect()) showDetail(plots.find(q => q.id === p.id) || p); });
+      box.append(h, b); return box;
+    }
+    if (!sameAddr(wallet.address, p.owner)){
+      const h = document.createElement('p'); h.className = 'hint'; h.textContent = 'Only the wallet holding this deed can change its ad.';
+      box.append(h); return box;
+    }
+    let newImage;                     // undefined = keep, null = use colour, Image = replace
+    box.innerHTML = `<h2>Edit your ad</h2>
+      <label for="eImg">Image<input id="eImg" class="file" type="file" accept="image/*"></label>
+      <label for="eTitle">Hover text<input id="eTitle" type="text" maxlength="80" placeholder="Your project name"></label>
+      <label for="eUrl">Link<input id="eUrl" type="url" maxlength="200" placeholder="https://yourproject.xyz"></label>
+      <label>Plot colour<span class="imgrow"><input id="eColor" type="color" aria-label="Plot colour"><button class="btn" type="button" id="eClear"${p.img ? '' : ' hidden'}>Remove image</button></span></label>
+      <button class="btn primary" type="button" id="eSave">Save ad</button>
+      <p class="msg" id="eMsg" hidden></p>`;
+    const q = sel => box.querySelector(sel), emsg = (t,k) => { const m = q('#eMsg'); m.textContent = t; m.className = 'msg ' + (k||''); m.hidden = false; };
+    q('#eTitle').value = p.title || ''; q('#eUrl').value = p.url || ''; q('#eColor').value = p.color || '#4a6cf7';
+    q('#eImg').addEventListener('change', e => {
+      const f = e.target.files[0]; if (!f) return;
+      const r = new FileReader(); r.onload = () => { const im = new Image(); im.onload = () => { newImage = im; emsg('Image ready. Save to put it on the grid.'); }; im.src = r.result; }; r.readAsDataURL(f);
+    });
+    q('#eClear').addEventListener('click', () => { newImage = null; q('#eImg').value=''; q('#eClear').hidden = true; emsg('Image will be removed. The plot shows its colour instead.'); });
+    q('#eSave').addEventListener('click', async () => {
+      let url = q('#eUrl').value.trim(); if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+      const patch = { title: q('#eTitle').value.trim().slice(0,80), url, color: q('#eColor').value };
+      if (newImage === null) patch.img = null;
+      else if (newImage){ const u = renderFill(p, newImage); if (!u){ emsg('That image is too large for this plot. Try a simpler image.', 'bad'); return; } patch.img = u; }
+      q('#eSave').disabled = true;
+      try {
+        if (wallet.provider) await sign(`The Million Pixel Homepage ad update\nplot ${p.x*B},${p.y*B}`);
+        await db.collection('plots').doc(p.id).update(patch);
+        emsg('Saved. Your ad is live on the grid.', 'good');
+      } catch (err) {
+        emsg(err?.code === 'invalid_argument' ? 'You don’t have permission to change this plot.' : 'Couldn’t save. Try again in a moment.', 'bad');
+      }
+      q('#eSave').disabled = false;
+    });
+    return box;
+  }
+  $('dClose').addEventListener('click', () => $('detail').hidden = true);
+
+  // ---------- image ----------
+  $('fImg').addEventListener('change', e => {
+    const f = e.target.files[0]; if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { const im = new Image(); im.onload = () => { fillImage = im; updatePreview(); }; im.src = r.result; };
+    r.readAsDataURL(f);
+  });
+  $('fColor').addEventListener('input', updatePreview);
+  function renderFill(plot = sel, im = fillImage){
+    if (!plot || !im) return null;
+    const w = plot.w*B, h = plot.h*B, c = document.createElement('canvas'); c.width=w; c.height=h;
+    const g = c.getContext('2d'), s = Math.max(w/im.width, h/im.height);
+    g.drawImage(im, (w-im.width*s)/2, (h-im.height*s)/2, im.width*s, im.height*s);
+    let url = c.toDataURL('image/png');
+    for (let q=.9; url.length > 200000 && q > .3; q -= .15) url = c.toDataURL('image/jpeg', q);
+    return url.length > 240000 ? null : url;
+  }
+  function updatePreview(){
+    const p = $('fPrev');
+    if (fillImage){ const u = renderFill(); p.style.background = ''; p.style.backgroundImage = u ? `url("${u}")` : ''; }
+    else { p.style.backgroundImage = ''; p.style.background = $('fColor').value; }
+  }
+
+  // ---------- wallet (EVM, Robinhood Chain) ----------
+  const CHAIN = { chainId: '0x1237', chainName: 'Robinhood Chain', nativeCurrency: {name:'Ether', symbol:'ETH', decimals:18},
+    rpcUrls: ['https://rpc.mainnet.chain.robinhood.com'], blockExplorerUrls: ['https://robinhoodchain.blockscout.com'] };
+  const rand = n => crypto.getRandomValues(new Uint8Array(n));
+  const hex = bytes => '0x' + [...bytes].map(b => b.toString(16).padStart(2,'0')).join('');
+  const sameAddr = (a, b) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
+  function provider(){ try { return window.ethereum || null; } catch { return null; } }
+  async function useRobinhoodChain(p){
+    try { await p.request({ method:'wallet_switchEthereumChain', params:[{ chainId: CHAIN.chainId }] }); }
+    catch (e) { if (e?.code === 4902) await p.request({ method:'wallet_addEthereumChain', params:[CHAIN] }); else throw e; }
+  }
+  async function connect(){
+    const p = provider();
+    if (p){
+      try {
+        const [addr] = await p.request({ method:'eth_requestAccounts' });
+        try { await useRobinhoodChain(p); } catch { say('Switch your wallet to Robinhood Chain to buy.', 'bad'); }
+        wallet = { address: addr, provider: p, demo: false };
+      } catch { say('Wallet connection was declined.', 'bad'); return false; }
+    } else {
+      let addr = null; try { addr = localStorage.getItem('demoWalletEvm'); } catch {}
+      if (!addr){ addr = hex(rand(20)); try { localStorage.setItem('demoWalletEvm', addr); } catch {} }
+      wallet = { address: addr, provider: null, demo: true };
+    }
+    $('walletBtn').classList.add('on');
+    $('walletLabel').textContent = (wallet.demo ? 'Demo ' : '') + short(wallet.address);
+    renderSel(); return true;
+  }
+  $('walletBtn').addEventListener('click', () => { if (!wallet) connect(); });
+
+  async function sign(text){
+    if (wallet.provider) return await wallet.provider.request({ method:'personal_sign', params:[hex(new TextEncoder().encode(text)), wallet.address] });
+    return hex(rand(65));
+  }
+
+  // ---------- buy ----------
+  $('buyForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    if (!sel) return;
+    if (!wallet && !(await connect())) return;
+    if (overlaps(sel)) { say('Someone just bought part of this area. Choose another spot.', 'bad'); return; }
+    if (!db){ say('The ledger is offline in this view, so purchases can’t be saved. Open the page from its share link.', 'bad'); return; }
+    let url = $('fUrl').value.trim(); if (url && !/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const title = $('fTitle').value.trim().slice(0,80);
+    const img = fillImage ? renderFill() : null;
+    if (fillImage && !img){ say('That image is too large for this plot. Try a simpler image or a solid colour.', 'bad'); return; }
+    const px = sel.w*sel.h*PX_PER_BLOCK;
+    const memo = `The Million Pixel Homepage purchase on Robinhood Chain\nplot ${sel.x*B},${sel.y*B} ${sel.w*B}x${sel.h*B}\nprice ${usd(sel.w*sel.h*PRICE_PER_BLOCK)}`;
+    $('buyBtn').disabled = true; say('Waiting for your wallet signature…');
+    let sig;
+    try { sig = await sign(memo); } catch { say('Signature was rejected, so nothing was bought.', 'bad'); renderSel(); return; }
+    const doc = {x:sel.x, y:sel.y, w:sel.w, h:sel.h, title, url, color: $('fColor').value, img, owner: wallet.address, sig, demo: wallet.demo, ts: Date.now()};
+    try {
+      const ref = await db.collection('plots').add(doc);
+      say(`Bought ${fmt(px)} pixels. Your Pixel Deed is minted and your plot is live${img || url ? '' : '. Add your ad any time from the deed'}.`, 'good');
+      showDetail({...doc, id: ref.id});
+      sel = null; fillImage = null; $('buyForm').reset(); $('fImg').value='';
+      $('selHint').hidden=false; $('selInfo').hidden=true; $('buyForm').hidden=true; draw();
+    } catch (err) {
+      const c = err?.code;
+      if (c === 'invalid_argument'){ canWrite = false; say('You don’t have permission to buy on this grid.', 'bad'); }
+      else if (c === 'quota_exceeded') say('The ledger is full. No more plots can be stored.', 'bad');
+      else say('Couldn’t save the purchase. Try again in a moment.', 'bad');
+      $('buyBtn').disabled = false;
+    }
+  });
+
+  // ---------- local fallback store (same calls as the shared ledger) ----------
+  function localStore(){
+    const KEY = 'mph-plots';
+    const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || '{}'); } catch { return {}; } };
+    let data = load(); const subs = [];
+    const save = () => { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} };
+    const snap = () => ({ docs: Object.entries(data).map(([id, v]) => ({ id, exists: true, data: () => v })) });
+    const emit = () => { save(); subs.forEach(fn => fn(snap())); };
+    return { collection: () => ({
+      add: async v => { const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 7); data[id] = v; emit(); return { id }; },
+      doc: id => ({ update: async patch => { if (!data[id]) throw { code: 'invalid_argument' }; data[id] = { ...data[id], ...patch }; emit(); } }),
+      onSnapshot: fn => { subs.push(fn); fn(snap()); return () => {}; }
+    }) };
+  }
+
+  // ---------- boot ----------
+  draw(); renderStats();
+  (async () => {
+    try {
+      const u = await window.claude?.use?.('user');
+      if (u){ const c = await u.can('data.write'); if (c === false) canWrite = false; }
+    } catch {}
+    try { db = await window.claude?.use?.('db'); } catch { db = null; }
+    if (!db) db = localStore();   // hosted outside Claude: keep plots in this browser until the contract is live
+    db.collection('plots').onSnapshot(snap => {
+      plots = snap.docs.map(d => ({id:d.id, ...d.data()})).filter(p => Number.isInteger(p.x) && p.w>0 && p.h>0);
+      rebuild(); draw(); renderStats();
+      if (sel) renderSel();
+    }, () => {});
+  })();
+})();
+</script>
+</body>
+</html>
