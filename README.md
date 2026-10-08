@@ -1,7 +1,7 @@
 # The Million Pixel Homepage
 
 A 1,000,000-pixel grid on **Robinhood Chain**, inspired by the original Million Dollar Homepage (2005).
-People connect a wallet, select free 10×10 blocks at **$1 per block**, and receive a square
+People connect a wallet, select free 10×10 blocks at **$2 per block**, and receive a square
 pixel-art **deed NFT** as proof they own that plot.
 
 Follow: [@MillPixels](https://x.com/MillPixels)
@@ -57,4 +57,4 @@ npx serve .
 
 ## Docs
 
-- [Business model](docs/business-model.docx). Written before the price changed to $1 per block, so its revenue figures are out of date.
+- [Business model](docs/business-model.docx). Written before the price changed to $2 per block, so its revenue figures are out of date.

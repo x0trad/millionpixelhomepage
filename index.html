@@ -104,7 +104,7 @@ footer{color:var(--muted);font-size:13px;max-width:70ch}
   <header>
     <div class="brand">
       <h1>The Million Pixel Homepage</h1>
-      <p><b>1,000,000 pixels</b> · <b>$1 per 10×10 block</b> · owned forever on Robinhood Chain</p>
+      <p><b>1,000,000 pixels</b> · <b>$2 per 10×10 block</b> · owned forever on Robinhood Chain</p>
       <p class="insp">Inspired by the original Million Dollar Homepage (2005).</p>
     </div>
     <div class="actions">
@@ -181,7 +181,7 @@ footer{color:var(--muted);font-size:13px;max-width:70ch}
 
 <script>
 (() => {
-  const N = 100, B = 10, PX_PER_BLOCK = 100, PRICE_PER_BLOCK = 1;
+  const N = 100, B = 10, PX_PER_BLOCK = 100, PRICE_PER_BLOCK = 2;
   const usd = n => '$' + n.toLocaleString('en-US');
   const cv = document.getElementById('cv'), ctx = cv.getContext('2d');
   const $ = id => document.getElementById(id);
